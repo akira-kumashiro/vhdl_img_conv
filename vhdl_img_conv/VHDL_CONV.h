@@ -20,6 +20,9 @@
 #include <iostream>
 #include <fstream>
 
+#define VGA_WIDTH 640
+#define VGA_HEIGHT 480
+
 
 class VHDL_CONV
 {
@@ -29,8 +32,6 @@ public:
 	void showFile(void);
 private:
 	cv::Mat mat, outMat, matTemp;
-	void init(void);
-	std::string windowName = "image";//ウインドウの名前
 	std::string filename;
 	void imgResize(cv::Mat _mat);
 	void fileOutput(void);
