@@ -26,10 +26,12 @@ class VHDL_CONV
 public:
 	VHDL_CONV(char argv[]);
 	~VHDL_CONV();
+	void showFile(void);
 private:
-	cv::Mat mat,outMat,matTemp;
+	cv::Mat mat, outMat, matTemp;
 	void init(void);
 	std::string windowName = "image";//ウインドウの名前
+	std::string filename;
 	void imgResize(cv::Mat _mat);
 	void fileOutput(void);
 	std::string getChannel(int c);

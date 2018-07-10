@@ -11,24 +11,25 @@
 #endif
 
 #include <opencv2\opencv.hpp>
-#include<opencv2\core\core_c.h>
+#include <opencv2\core\core_c.h>
 #include <opencv\highgui.h>
 #include <opencv2\highgui\highgui.hpp>
 #include "VHDL_CONV.h"
+#include <conio.h>
 
 int main(int argc, char* argv[])
 {
-
-	/*char name[] = "test.png";
-	VHDL_CONV test(name);
-	cv::waitKey();//なにかキーを押されるまで待機*/
-
 	if (argc > 1)//なにかD&Dされたら
 	{
 		for (int i = 1; i < argc; i++)
 		{
-			VHDL_CONV test(argv[i]);//ファイルの読み込み
-			cv::waitKey();//なにかキーを押されるまで待機
+			VHDL_CONV conv(argv[i]);//ファイルの読み込み
+			int c=cv::waitKey();
+			if (c == 'v' || c == 'V')
+			{
+				conv.showFile();
+				cv::waitKey();
+			}
 		}
 	}
 	return 0;
