@@ -15,9 +15,15 @@ VHDL_CONV::VHDL_CONV(char argv[])
 	std::cin >> filename;
 	std::cout << "Save as \"" + filename + ".vhd\"\n";
 
+	//double per;
+	std::cout << "Set image size(dot):\n";
+	scanf("%d", &p);
+
+	//p = (int)(100 / per);
+
 	outMat = cv::Mat::zeros(cv::Size(VGA_WIDTH, VGA_HEIGHT), CV_8UC3);
 
-	imgResize(mat);
+	imgResize(mat,p);
 
 	cv::imshow("OutMat", outMat);
 
@@ -41,7 +47,7 @@ void VHDL_CONV::showFile(void)
 	}
 }
 
-void VHDL_CONV::imgResize(cv::Mat _mat)
+void VHDL_CONV::imgResize(cv::Mat _mat,int per)
 {
 	cv::Mat temp;
 
@@ -70,6 +76,10 @@ void VHDL_CONV::imgResize(cv::Mat _mat)
 			}
 		}
 	}
+
+	//cv::resize(outMat, outMat, cv::Size(), per / 100.0, per / 100.0,CV_INTER_NN);
+	//cv::resize(outMat, outMat, cv::Size(), 100.0 / per, 100.0 / per, CV_INTER_NN);
+
 }
 
 std::string VHDL_CONV::getChannel(int c)
@@ -109,9 +119,8 @@ void VHDL_CONV::fileOutput1dim(void)
 					else
 						outMat.data[k] -= std::pow(2, 8.0 - i);
 
-					if (k == ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + c) - outMat.channels())
+					if (k == ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + c))
 						hitEndOfArrayFlag = true;
-
 				}
 				if (k - j)
 				{
@@ -119,6 +128,7 @@ void VHDL_CONV::fileOutput1dim(void)
 					{
 						if (j != c)
 						{
+							//outputfile << "		elsif";
 							outputfile << " or ";
 							writeFileFlag = false;
 						}
@@ -130,13 +140,19 @@ void VHDL_CONV::fileOutput1dim(void)
 					if ((int)((k - j) / outMat.channels()) > 1)
 					{
 						if (hitEndOfArrayFlag)
+						{
+							//outputfile << " (Point>=" + std::to_string((j - c) / outMat.channels()) + " and Point<" + std::to_string(VGA_WIDTH * VGA_HEIGHT - 1) + ") then\n			" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")<=\'1\';\n";
 							outputfile << "(Point>=" + std::to_string((j - c) / outMat.channels()) + " and Point<" + std::to_string(VGA_WIDTH * VGA_HEIGHT - 1) + ")";
+						}
 						else
-							outputfile << "(Point>=" + std::to_string((j - c) / outMat.channels()) + " and Point<" + std::to_string((j + k - 2 * c) / outMat.channels()) + ")";
-
+						{
+							outputfile << "(Point>=" + std::to_string((j - c) / outMat.channels()) + " and Point<" + std::to_string(( k - c) / outMat.channels()) + ")";
+							//outputfile << " (Point>=" + std::to_string((j - c) / outMat.channels()) + " and Point<" + std::to_string(( k - c) / outMat.channels()) + ") then\n			" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")<=\'1\';\n";
+						}
 					}
 					else
 					{
+						//outputfile << "(Point=" + std::to_string((j - c) / outMat.channels()) + ") then\n			" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")<=\'1\';\n";
 						outputfile << "(Point=" + std::to_string((j - c) / outMat.channels()) + ")";
 					}
 					writeFileFlag = true;
@@ -146,13 +162,13 @@ void VHDL_CONV::fileOutput1dim(void)
 			}
 			if (!writeFileFlag)
 			{
-				outputfile << "		" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")=\'0\';\n";
+				outputfile << "		" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")<=\'0\';\n";
 			}
 			else
 			{
 				outputfile << ") then\n";
-				outputfile << "			" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")=\'1\';\n";
-				outputfile << "		else\n			" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")=\'0\';\n		end if;\n";
+				outputfile << "			" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")<=\'1\';\n";
+				outputfile << "		else\n			" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")<=\'0\';\n		end if;\n";
 			}
 		}
 	}

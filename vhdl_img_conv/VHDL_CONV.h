@@ -33,9 +33,10 @@ public:
 private:
 	cv::Mat mat, outMat, matTemp;
 	std::string filename;
-	void imgResize(cv::Mat _mat);
+	void imgResize(cv::Mat _mat,int per);
 	void fileOutput(void);
 	std::string getChannel(int c);
 	void fileOutput1dim(void);
+	int p;
 };
 
