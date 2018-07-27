@@ -2,24 +2,21 @@
 
 VHDL_CONV::VHDL_CONV(char argv[])
 {
-	mat = cv::imread(argv);//�摜�̓ǂݍ���
-	if (mat.data == NULL)//�摜�̓ǂݍ��݂Ɏ��s�����Ƃ��̏���
+	mat = cv::imread(argv);//画像の読み込み
+	if (mat.data == NULL)//画像の読み込みに失敗したときの処理
 	{
 		std::cout << "Cannot open this file!" << std::endl;
 		return;
 	}
 
-	cv::imshow("InMat", mat);//�摜�̕\��
+	cv::imshow("InMat", mat);//画像の表示
 
 	std::cout << "Set output filename:\n";
 	std::cin >> filename;
 	std::cout << "Save as \"" + filename + ".vhd\"\n";
 
-	//double per;
 	std::cout << "Set image size(dot):\n";
 	scanf("%d", &p);
-
-	//p = (int)(100 / per);
 
 	outMat = cv::Mat::zeros(cv::Size(VGA_WIDTH, VGA_HEIGHT), CV_8UC3);
 
@@ -47,7 +44,7 @@ void VHDL_CONV::showFile(void)
 	}
 }
 
-void VHDL_CONV::imgResize(cv::Mat _mat,int per)
+void VHDL_CONV::imgResize(cv::Mat _mat,int per)//画像サイズを640*480に
 {
 	cv::Mat temp;
 
@@ -93,19 +90,19 @@ std::string VHDL_CONV::getChannel(int c)
 	}
 }
 
-void VHDL_CONV::fileOutput1dim(void)
+void VHDL_CONV::fileOutput1dim(void)//ファイル書き込み
 {
 	std::ofstream outputfile(filename + ".vhd");
 	outputfile << "library ieee;\n	use ieee.std_logic_1164.all;\n	use ieee.std_logic_unsigned.all;\nentity " + filename + " is\n";
 	outputfile << "port(\n	Point:in std_logic_vector(19 downto 0);\n	R:out std_logic_vector(3 downto 0);\n	G:out std_logic_vector(3 downto 0);\n	B:out std_logic_vector(3 downto 0)\n);\nend " + filename + ";\n";
 	outputfile << "architecture rtl of " + filename + " is\n	begin\n	process(Point)\n		begin\n";
 
-	for (int c = 0; c < outMat.channels(); c++)
+	for (int c = 0; c < outMat.channels(); c++)//RGBチャンネルごとに処理
 	{
-		for (int i = 0; i < 4; i++)
+		for (int i = 0; i < 4; i++)//4bit
 		{
-			bool writeFileFlag = false;
-			bool firstWriteFlag = false;
+			bool writeFileFlag = false;//条件式追加判定フラグ
+			bool firstWriteFlag = false;//初めての条件式追加フラグ
 
 			for (int j = c; j < ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + c); j += outMat.channels())
 			{
@@ -114,15 +111,15 @@ void VHDL_CONV::fileOutput1dim(void)
 
 				for (k = j; k < ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + c); k += outMat.channels())
 				{
-					if ((int)(outMat.data[k] / std::pow(2, 8.0 - i)) != 1)
+					if ((int)(outMat.data[k] / std::pow(2, 8.0 - i)) != 1)//bitが立ってる区間を判定
 						break;
 					else
 						outMat.data[k] -= std::pow(2, 8.0 - i);
 
-					if (k == ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + c))
+					if (k == ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + c))//画像の末尾を判定
 						hitEndOfArrayFlag = true;
 				}
-				if (k - j)
+				if (k - j)//条件式があるとき
 				{
 					if (writeFileFlag)
 					{
@@ -137,7 +134,7 @@ void VHDL_CONV::fileOutput1dim(void)
 					if (!firstWriteFlag)
 						outputfile << "		if(";
 
-					if ((int)((k - j) / outMat.channels()) > 1)
+					if ((int)((k - j) / outMat.channels()) > 1)//条件式追加
 					{
 						if (hitEndOfArrayFlag)
 						{
@@ -160,7 +157,7 @@ void VHDL_CONV::fileOutput1dim(void)
 				}
 				j = k;
 			}
-			if (!writeFileFlag)
+			if (!writeFileFlag)//条件が1つもないとき
 			{
 				outputfile << "		" + getChannel(c) + "(" + std::to_string(outMat.channels() - i) + ")<=\'0\';\n";
 			}
@@ -173,173 +170,6 @@ void VHDL_CONV::fileOutput1dim(void)
 		}
 	}
 	outputfile << "	end process;\nend rtl;";
-
-	outputfile.close();
-}
-
-void VHDL_CONV::fileOutput(void)
-{
-	std::string str = std::string("img01");
-
-	std::ofstream outputfile(str + ".vhd");
-	outputfile << "library ieee;\n use ieee.std_logic_1164.all;\n use ieee.std_logic_unsigned.all;\n entity " + str + " is\n";
-	outputfile << "port(\n H_NUM:in std_logic_vector(10 downto 0);\n V_NUM:in std_logic_vector(10 downto 0);\n R:out std_logic_vector(3 downto 0);\n G:out std_logic_vector(3 downto 0);\n B:out std_logic_vector(3 downto 0));\n end " + str + ";";
-	outputfile << "architecture rtl of " + str + " is\n begin\n process(H_NUM, V_NUM)\n begin\n";
-	outputfile << "if (H_NUM >= 640 and V_NUM >= 480) then\n R <= \"0000\";\n G <= \"0000\";\n B <= \"0000\";\n";
-
-	for (int y = 0; y < outMat.rows; y++)
-	{
-		cv::Vec3b *outMat_ptr = outMat.ptr<cv::Vec3b>(y);
-		{
-			for (int x = 0; x < outMat.cols; x++)
-			{
-				if (outMat_ptr[x][0] < 16 && outMat_ptr[x][1] < 16 && outMat_ptr[x][2] < 16)
-				{
-				}
-				else
-				{
-					outputfile << "if(H_NUM=" + std::to_string(x) + " and V_NUM=" + std::to_string(y) + ") then\n";
-					for (int i = 0; i < 3; i++)
-					{
-						switch (i)
-						{
-						case 0:outputfile << "R<=\""; break;
-						case 1:outputfile << "G<=\""; break;
-						case 2:outputfile << "B<=\""; break;
-						}
-						for (int j = 0; j < 4; j++)
-						{
-							int temp = outMat_ptr[x][2 - i];
-							if ((int)(temp / std::pow(2, 8.0 - j)))
-							{
-								outputfile << "1";
-								temp -= std::pow(2, 8.0 - j);
-							}
-							else
-							{
-								outputfile << "0";
-							}
-						}
-						outputfile << "\";";
-					}
-					outputfile << "\n";
-				}
-			}
-		}
-	}
-
-	for (int i = 0; i < 3; i++)
-	{
-		/*for (int j = i; j < ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + i); j+=3)
-		{
-		if((j-i)
-
-		int k;
-		for (k = j; k < ((outMat.rows - 1)*outMat.step + (outMat.cols - 1)*outMat.elemSize() + i); k += 3)
-		{
-		if (std::abs(outMat.data[j] - outMat.data[k]) >= 16)
-		{
-		break;
-		}
-		}
-		if (outMat.data[j] < 16)
-		{
-
-		}
-		else
-		{
-		if (k)
-		{
-		outputfile<<"if((H_NUM>="+std::to_string((j-i)/3/480))+" and H_NUM<" + std::to_string((j+k-2*i) / 3 / 480)) +") and "
-		}
-		}
-		}*/
-		outputfile << "if(H_NUM>=640 and V_NUM>=480) then\n";
-		outputfile << getChannel(i) + "<=\"0000\";\n";
-
-
-
-
-		/*bool sameRowFlag = false;
-		int ySameTemp = 0;
-
-		for (int y = 0; y < outMat.rows; y++)
-		{
-		cv::Vec3b *outMat_ptr = outMat.ptr<cv::Vec3b>(y);
-		for (int x = 0; x < outMat.cols; x++)
-		{
-		if (std::abs(outMat_ptr[x][i] - outMat_ptr[0][i]) >= 16)
-		{
-		break;
-		}
-		if (x == outMat.cols - 1)
-		{
-		sameRowFlag = true;
-		ySameTemp = y;
-		}
-		}
-		if(!sameRowFlag)
-		for (int x = 0; x < outMat.cols; x++)
-		{
-		if (outMat_ptr[x][0] < 16 && outMat_ptr[x][1] < 16 && outMat_ptr[x][2] < 16)
-		{
-		}
-		else
-		{
-		outputfile << "if(H_NUM=" + std::to_string(x) + " and V_NUM=" + std::to_string(y) + ") then\n";
-		for (int i = 0; i < 3; i++)
-		{
-		switch (i)
-		{
-		case 0:outputfile << "R<=\""; break;
-		case 1:outputfile << "G<=\""; break;
-		case 2:outputfile << "B<=\""; break;
-		}
-		for (int j = 0; j < 4; j++)
-		{
-		int temp = outMat_ptr[x][2 - i];
-		if ((int)(temp / std::pow(2, 8.0 - j)))
-		{
-		outputfile << "1";
-		temp -= std::pow(2, 8.0 - j);
-		}
-		else
-		{
-		outputfile << "0";
-		}
-		}
-		outputfile << "\";";
-		}
-		outputfile << "\n";
-		}
-		}
-
-		}*/
-	}
-
-	outputfile << "else\n R <= \"0000\";\n G <= \"0000\";\n B <= \"0000\";\n	end if;\n";
-	outputfile << "end process;\n end rtl;";
-	/*	if (H_NUM >= 640 and V_NUM >= 480) then
-	R <= "0000";
-	G <= "0000";
-	B <= "0000";
-	elsif(H_NUM<320 and V_NUM<240) then
-	R <= "1111";
-	G <= "0000";
-	B <= "0000";
-	elsif(H_NUM<640 and V_NUM<240) then
-	R <= "0000";
-	G <= "1111";
-	B <= "0000";
-	elsif(H_NUM<320 and V_NUM<480) then
-	R <= "0000";
-	G <= "0000";
-	B <= "1111";
-	elsif(H_NUM<640 and V_NUM<480) then
-	R <= "1111";
-	G <= "1111";
-	B <= "0000";*/
-
 
 	outputfile.close();
 }
